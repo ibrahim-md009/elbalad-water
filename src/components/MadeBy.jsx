@@ -10,7 +10,7 @@ export default function MadeBy() {
         محمود
       </a>{" "}
       و{" "}
-      <a href="https://ibrahim-dev-seven.vercel.app/" target="_blank" rel="noopener noreferrer">
+      <a href="https://ibrahim-dev-09.vercel.app" target="_blank" rel="noopener noreferrer">
         إبراهيم
       </a>
     </p>
