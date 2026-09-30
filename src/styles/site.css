@@ -369,3 +369,33 @@
     padding: 8px 10px;
   }
 }
+
+/* ───────── Made By (ضيفه في آخر site.css) ───────── */
+.made-by {
+  width: 100%;
+  padding-bottom: 14px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: center;
+}
+.made-by-heart {
+  color: var(--error);
+}
+.made-by a {
+  font-weight: 800;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  background-color: var(--brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: border-color 0.15s;
+}
+.made-by a:hover {
+  border-bottom-color: var(--brand);
+}
+[data-theme="dark"] .made-by {
+  color: var(--brand-light);
+}
