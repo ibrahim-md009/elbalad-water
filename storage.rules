@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // وصلات الدفع: الزبون يستطيع رفع ملف WebP صغير فقط، ولا يستطيع القراءة أو التعديل أو الحذف.
+    // المسؤول يعرض الصورة عبر رابط التنزيل (download URL) المحفوظ في reservation.receiptUrl.
+    match /receipts/{fileName} {
+      allow create: if request.resource.contentType == 'image/webp'
+                    && request.resource.size > 0
+                    && request.resource.size < 3 * 1024 * 1024
+                    && fileName.matches('.*[.]webp');
+      allow read, update, delete: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

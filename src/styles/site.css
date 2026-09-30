@@ -1,0 +1,371 @@
+/* ───────── الموقع الأساسي (يعتمد على متغيرات theme.css نفسها) ───────── */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  border: 0;
+}
+
+.site {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.site-container {
+  width: 100%;
+  max-width: 1040px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+.site-main {
+  flex: 1;
+  padding-block: 24px 48px;
+}
+.stack {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+/* Header */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--sidebar-bg);
+  border-bottom: 1px solid var(--border);
+}
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+}
+.site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+  color: var(--text);
+}
+.site-nav {
+  display: flex;
+  gap: 4px;
+  margin-inline-start: auto;
+}
+.site-nav a {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.site-nav a:hover {
+  background: var(--hover);
+}
+.site-nav a.active {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+}
+
+/* Footer */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--sidebar-bg);
+  padding-block: 22px;
+  color: var(--text-2);
+}
+.site-footer-inner {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  text-align: center;
+}
+.site-footer .site-brand {
+  font-size: 1rem;
+}
+
+/* Hero */
+.hero {
+  text-align: center;
+  padding-block: 12px 24px;
+}
+.hero h1 {
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+.hero p {
+  margin-top: 6px;
+  color: var(--text-2);
+}
+
+/* بطاقات المواعيد */
+.av-grid,
+.pay-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+.av-card,
+.pay-card {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+.av-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.av-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.av-minutes {
+  font-size: 1.25rem;
+}
+.av-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+}
+
+/* Skeleton */
+.skeleton-card .sk {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: var(--neutral-soft);
+  animation: sk-pulse 1.4s ease-in-out infinite;
+}
+.sk-icon {
+  width: 44px;
+  height: 44px;
+}
+.sk-line {
+  height: 18px;
+  width: 70%;
+}
+.sk-line.short {
+  width: 45%;
+}
+.sk-btn {
+  height: 48px;
+}
+@keyframes sk-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* نافذة الحجز: Bottom Sheet على الموبايل، نافذة كبيرة في المنتصف على الديسكتوب */
+.modal-booking {
+  max-width: 640px;
+}
+.modal-overlay:has(.modal-booking) {
+  align-items: center;
+}
+@media (max-width: 640px) {
+  .modal-overlay:has(.modal-booking) {
+    place-items: end stretch;
+    padding: 0;
+  }
+  .modal-booking {
+    max-width: none;
+    max-height: 94vh;
+    max-height: 94dvh;
+    border-radius: 20px 20px 0 0;
+    animation: sheet-up 0.22s ease-out;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0.6;
+  }
+}
+.booking-slot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.booking-slot .badge {
+  margin-inline-start: auto;
+}
+.price-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--brand);
+  background: var(--card);
+}
+.price-box strong {
+  font-size: 1.3rem;
+  color: var(--accent);
+}
+.booking-actions {
+  position: sticky;
+  bottom: -20px;
+  padding-block: 8px 4px;
+  background: var(--card);
+}
+
+/* رفع الوصل */
+.upload-box {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 130px;
+  align-content: center;
+  padding: 16px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--input-bg);
+  color: var(--accent);
+  text-align: center;
+}
+.upload-box:not(:disabled):hover {
+  border-color: var(--brand);
+  background: var(--hover);
+}
+.upload-box.invalid {
+  border-color: var(--error);
+}
+.upload-box strong {
+  color: var(--text);
+}
+.upload-busy {
+  color: var(--text);
+  cursor: progress;
+}
+.upload-preview {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--input-bg);
+}
+.upload-preview img {
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  background: var(--neutral-soft);
+}
+.upload-preview-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.upload-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+.upload-remove {
+  color: var(--danger-text);
+}
+
+/* شاشة النجاح */
+.success-view {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+}
+.success-icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--success-soft);
+  color: var(--success-text);
+}
+.success-details {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin: 4px 0;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  text-align: start;
+}
+.success-details > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.success-details dt {
+  color: var(--text-2);
+}
+.success-details dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* طرق الدفع */
+.pay-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pay-row {
+  display: grid;
+  gap: 2px;
+}
+.pay-number {
+  font-size: 1.15rem;
+  letter-spacing: 0.5px;
+  word-break: break-all;
+  text-align: start;
+}
+
+@media (min-width: 640px) {
+  .av-grid,
+  .pay-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hero h1 {
+    font-size: 1.9rem;
+  }
+}
+@media (min-width: 960px) {
+  .av-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .pay-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 420px) {
+  .site-brand span:last-child {
+    font-size: 1rem;
+  }
+  .site-nav a {
+    padding: 8px 10px;
+  }
+}
