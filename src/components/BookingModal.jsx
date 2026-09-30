@@ -57,8 +57,8 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
     const phoneError = validatePhone(phone);
     if (phoneError) next.phone = phoneError;
     if (minutes === "") next.minutes = "أدخل عدد الدقائق.";
-    else if (!Number.isInteger(mins) || mins <= 0) next.minutes = "أدخل عدد دقائق صحيحًا أكبر من صفر.";
-    else if (mins > available) next.minutes = `المتاح حاليًا ${formatMinutes(available)} فقط.`;
+    else if (!Number.isInteger(mins) || mins <= 0) next.minutes = "أدخل عدد دقائق صحيح أكبر من صفر.";
+    else if (mins > available) next.minutes = "الرقم المطلوب غير متوفر";
     if (!receipt) next.receipt = "أرفق صورة وصل الدفع.";
     setErrors(next);
     return Object.keys(next).length === 0;
