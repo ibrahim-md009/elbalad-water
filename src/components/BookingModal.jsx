@@ -1,46 +1,46 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, ExternalLink, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import Modal from './Modal';
-import ReceiptUpload from './ReceiptUpload';
-import { calcPrice } from '../lib/pricing';
-import { formatMinutes, formatMoney } from '../lib/format';
-import { normalizePhone, validatePhone } from '../lib/phone';
-import { toArabicError } from '../lib/errors';
-import { withTimeout } from '../lib/timeout';
-import { uploadReceipt } from '../services/receipts';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import Modal from "./Modal";
+import ReceiptUpload from "./ReceiptUpload";
+import { calcPrice } from "../lib/pricing";
+import { formatMinutes, formatMoney } from "../lib/format";
+import { normalizePhone, validatePhone } from "../lib/phone";
+import { toArabicError } from "../lib/errors";
+import { withTimeout } from "../lib/timeout";
+import { uploadReceipt } from "../services/receipts";
 import {
   MINUTES_UNAVAILABLE,
   MINUTES_UNAVAILABLE_MESSAGE,
   assertMinutesAvailable,
   createReservation,
-} from '../services/reservations';
+} from "../services/reservations";
 
-const SUBMIT_ERROR = 'حدث خطأ أثناء إرسال الحجز، حاول مرة أخرى.';
-const UPLOAD_ERROR = 'تعذر رفع صورة الوصل، حاول مرة أخرى.';
+const SUBMIT_ERROR = "حدث خطأ أثناء إرسال الحجز، حاول مرة أخرى.";
+const UPLOAD_ERROR = "تعذر رفع صورة الوصل، حاول مرة أخرى.";
 
 /**
  * item: نسخة حيّة من الدفعة (تتحدث لحظيًا) أو null إن لم تعد متاحة.
  * snapshot: بيانات الدفعة وقت الفتح (للعرض في شاشة النجاح).
  */
 export default function BookingModal({ open, item, snapshot, settings, onClose, onGone }) {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [minutes, setMinutes] = useState('');
-  const [notes, setNotes] = useState('');
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [minutes, setMinutes] = useState("");
+  const [notes, setNotes] = useState("");
   const [receipt, setReceipt] = useState(null);
   const [errors, setErrors] = useState({});
-  const [phase, setPhase] = useState('idle'); // idle | uploading | submitting | done
-  const [formError, setFormError] = useState('');
+  const [phase, setPhase] = useState("idle"); // idle | uploading | submitting | done
+  const [formError, setFormError] = useState("");
   const [result, setResult] = useState(null);
   const goneNotified = useRef(false);
 
-  const busy = phase === 'uploading' || phase === 'submitting';
+  const busy = phase === "uploading" || phase === "submitting";
   const available = Number(item?.availableMinutes) || 0;
 
   // انتهت الدقائق أثناء وجود الزبون داخل الفورم (ليس بسبب حجزه هو)
   useEffect(() => {
-    if (!open || phase !== 'idle' || goneNotified.current) return;
+    if (!open || phase !== "idle" || goneNotified.current) return;
     if (!item || available < 1) {
       goneNotified.current = true;
       onGone(MINUTES_UNAVAILABLE_MESSAGE);
@@ -48,18 +48,18 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
   }, [open, item, available, phase, onGone]);
 
   const mins = Number(minutes);
-  const minutesValid = minutes !== '' && Number.isInteger(mins) && mins > 0;
+  const minutesValid = minutes !== "" && Number.isInteger(mins) && mins > 0;
   const price = useMemo(() => (minutesValid ? calcPrice(mins, settings) : 0), [minutesValid, mins, settings]);
 
   const validate = () => {
     const next = {};
-    if (!name.trim()) next.name = 'أدخل اسمك الكامل.';
+    if (!name.trim()) next.name = "أدخل اسمك الكامل.";
     const phoneError = validatePhone(phone);
     if (phoneError) next.phone = phoneError;
-    if (minutes === '') next.minutes = 'أدخل عدد الدقائق.';
-    else if (!Number.isInteger(mins) || mins <= 0) next.minutes = 'أدخل عدد دقائق صحيحًا أكبر من صفر.';
+    if (minutes === "") next.minutes = "أدخل عدد الدقائق.";
+    else if (!Number.isInteger(mins) || mins <= 0) next.minutes = "أدخل عدد دقائق صحيحًا أكبر من صفر.";
     else if (mins > available) next.minutes = `المتاح حاليًا ${formatMinutes(available)} فقط.`;
-    if (!receipt) next.receipt = 'أرفق صورة وصل الدفع.';
+    if (!receipt) next.receipt = "أرفق صورة وصل الدفع.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -67,25 +67,29 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
   const onSubmit = async (e) => {
     e.preventDefault();
     if (busy) return;
-    setFormError('');
+    setFormError("");
     if (!validate()) return;
 
     try {
       // تحقق مبكر من التوفر قبل رفع الصورة
-      await withTimeout(assertMinutesAvailable(snapshot.id, mins), 12000, 'تعذر الاتصال بالخادم، تحقق من الإنترنت وحاول مجددًا.');
+      await withTimeout(
+        assertMinutesAvailable(snapshot.id, mins),
+        12000,
+        "تعذر الاتصال بالخادم، تحقق من الإنترنت وحاول مجددًا.",
+      );
 
-      setPhase('uploading');
+      setPhase("uploading");
       let receiptUrl;
       try {
         receiptUrl = await withTimeout(uploadReceipt(receipt.file), 45000, UPLOAD_ERROR);
       } catch (uploadErr) {
-        console.error('receipt upload failed:', uploadErr?.code, uploadErr);
-        setPhase('idle');
+        console.error("receipt upload failed:", uploadErr?.code, uploadErr);
+        setPhase("idle");
         setFormError(UPLOAD_ERROR);
         return;
       }
 
-      setPhase('submitting');
+      setPhase("submitting");
       await withTimeout(
         createReservation({
           name,
@@ -99,24 +103,24 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
         SUBMIT_ERROR,
       );
       setResult({ minutes: mins, price, dateText: snapshot.dateText });
-      setPhase('done');
+      setPhase("done");
     } catch (err) {
-      console.error('reservation failed:', err?.code, err);
+      console.error("reservation failed:", err?.code, err);
       if (err?.code === MINUTES_UNAVAILABLE) {
         goneNotified.current = true;
-        setPhase('idle');
+        setPhase("idle");
         onGone(MINUTES_UNAVAILABLE_MESSAGE);
         return;
       }
-      setPhase('idle');
-      setFormError(err?.name === 'AppError' ? toArabicError(err) : SUBMIT_ERROR);
+      setPhase("idle");
+      setFormError(err?.name === "AppError" ? toArabicError(err) : SUBMIT_ERROR);
     }
   };
 
   const submitLabel =
-    phase === 'uploading' ? 'جاري رفع الوصل...' : phase === 'submitting' ? 'جاري إرسال الحجز...' : 'تأكيد الحجز';
+    phase === "uploading" ? "جاري رفع الوصل..." : phase === "submitting" ? "جاري إرسال الحجز..." : "تأكيد الحجز";
 
-  if (phase === 'done' && result) {
+  if (phase === "done" && result) {
     return (
       <Modal open={open} onClose={onClose} title="تم الإرسال" size="booking">
         <div className="success-view">
@@ -154,14 +158,13 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
         <div className="booking-slot">
           <span>الموعد</span>
           <strong>{snapshot?.dateText}</strong>
-          <span className="badge badge-success">{formatMinutes(available)} متاحة</span>
         </div>
 
         <div className="field">
           <label htmlFor="bk-name">الاسم الكامل</label>
           <input
             id="bk-name"
-            className={`input ${errors.name ? 'invalid' : ''}`}
+            className={`input ${errors.name ? "invalid" : ""}`}
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
@@ -175,7 +178,7 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
           <label htmlFor="bk-phone">رقم الهاتف</label>
           <input
             id="bk-phone"
-            className={`input ${errors.phone ? 'invalid' : ''}`}
+            className={`input ${errors.phone ? "invalid" : ""}`}
             dir="ltr"
             inputMode="tel"
             autoComplete="tel"
@@ -192,13 +195,13 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
           <label htmlFor="bk-minutes">عدد الدقائق</label>
           <input
             id="bk-minutes"
-            className={`input ${errors.minutes ? 'invalid' : ''}`}
+            className={`input ${errors.minutes ? "invalid" : ""}`}
             type="number"
             inputMode="numeric"
             min="1"
             max={available}
             step="1"
-            placeholder={`من 1 إلى ${available}`}
+            placeholder="كم دقيقة تحتاج ؟"
             value={minutes}
             onChange={(e) => setMinutes(e.target.value)}
             disabled={busy}
@@ -208,7 +211,7 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
 
         <div className="price-box" aria-live="polite">
           <span>السعر</span>
-          <strong>{minutesValid ? formatMoney(price) : '—'}</strong>
+          <strong>{minutesValid ? formatMoney(price) : "—"}</strong>
         </div>
 
         <ReceiptUpload value={receipt} onChange={setReceipt} disabled={busy} error={errors.receipt} />
