@@ -7,6 +7,7 @@ import { calcPrice } from '../lib/pricing';
 import { formatMinutes, formatMoney } from '../lib/format';
 import { normalizePhone, validatePhone } from '../lib/phone';
 import { toArabicError } from '../lib/errors';
+import { withTimeout } from '../lib/timeout';
 import { uploadReceipt } from '../services/receipts';
 import {
   MINUTES_UNAVAILABLE,
@@ -71,30 +72,36 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
 
     try {
       // تحقق مبكر من التوفر قبل رفع الصورة
-      await assertMinutesAvailable(snapshot.id, mins);
+      await withTimeout(assertMinutesAvailable(snapshot.id, mins), 12000, 'تعذر الاتصال بالخادم، تحقق من الإنترنت وحاول مجددًا.');
 
       setPhase('uploading');
       let receiptUrl;
       try {
-        receiptUrl = await uploadReceipt(receipt.file);
-      } catch {
+        receiptUrl = await withTimeout(uploadReceipt(receipt.file), 45000, UPLOAD_ERROR);
+      } catch (uploadErr) {
+        console.error('receipt upload failed:', uploadErr?.code, uploadErr);
         setPhase('idle');
         setFormError(UPLOAD_ERROR);
         return;
       }
 
       setPhase('submitting');
-      await createReservation({
-        name,
-        phone: normalizePhone(phone),
-        minutes: mins,
-        availabilityId: snapshot.id,
-        receiptUrl,
-        notes,
-      });
+      await withTimeout(
+        createReservation({
+          name,
+          phone: normalizePhone(phone),
+          minutes: mins,
+          availabilityId: snapshot.id,
+          receiptUrl,
+          notes,
+        }),
+        25000,
+        SUBMIT_ERROR,
+      );
       setResult({ minutes: mins, price, dateText: snapshot.dateText });
       setPhase('done');
     } catch (err) {
+      console.error('reservation failed:', err?.code, err);
       if (err?.code === MINUTES_UNAVAILABLE) {
         goneNotified.current = true;
         setPhase('idle');

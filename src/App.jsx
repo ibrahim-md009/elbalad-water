@@ -1,12 +1,14 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import SiteLayout from './components/SiteLayout';
 import Home from './pages/Home';
 import PaymentMethods from './pages/PaymentMethods';
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <ThemeProvider>
       <ToastProvider>
         <BrowserRouter>
@@ -20,5 +22,6 @@ export default function App() {
         </BrowserRouter>
       </ToastProvider>
     </ThemeProvider>
+    </ErrorBoundary>
   );
 }
