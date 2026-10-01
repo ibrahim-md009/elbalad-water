@@ -399,3 +399,64 @@
 [data-theme="dark"] .made-by {
   color: var(--brand-light);
 }
+
+/* ───────── آية + شريط الأذكار ───────── */
+.adhkar-wrap {
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+  padding-block: 8px 0;
+  text-align: center;
+}
+.adhkar-verse {
+  margin: 0;
+  padding-inline: 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.8;
+  color: var(--accent);
+}
+.adhkar-bar {
+  overflow: hidden;
+  direction: ltr; /* عشان اتجاه الحركة يكون ثابت بغض النظر عن RTL */
+  padding-block: 6px;
+}
+.adhkar-track {
+  display: flex;
+  width: max-content;
+  animation: adhkar-scroll 40s linear infinite;
+}
+.adhkar-bar:hover .adhkar-track {
+  animation-play-state: paused;
+}
+.adhkar-group {
+  display: flex;
+  flex-shrink: 0;
+}
+.adhkar-item {
+  direction: rtl;
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  padding-inline-end: 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.adhkar-dot {
+  font-size: 0.7rem;
+  color: var(--brand);
+}
+@keyframes adhkar-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .adhkar-track {
+    animation-duration: 120s;
+  }
+}

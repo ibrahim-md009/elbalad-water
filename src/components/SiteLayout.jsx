@@ -4,6 +4,7 @@ import { APP_NAME, APP_TAGLINE } from "../config/app";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 import MadeBy from "../components/MadeBy";
+import AdhkarBar from "./AdhkarBar";
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -31,6 +32,8 @@ export default function SiteLayout() {
           <ThemeToggle variant="icon" />
         </div>
       </header>
+
+      <AdhkarBar />
 
       <main className="site-main">
         <div className="site-container">
