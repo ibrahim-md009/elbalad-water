@@ -127,8 +127,8 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
           <span className="success-icon">
             <CheckCircle2 size={44} aria-hidden="true" />
           </span>
-          <h3>تم إرسال طلب الحجز بنجاح</h3>
-          <p className="field-hint">طلبك الآن قيد المراجعة.</p>
+          <h3>تم إرسال حجزك للمسؤول</h3>
+          <p className="field-hint">سيصلك رسالة بتأكيد الحجز عند قبوله.</p>
           <dl className="success-details">
             <div>
               <dt>عدد الدقائق</dt>
@@ -143,7 +143,6 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
               <dd>{formatMoney(result.price)}</dd>
             </div>
           </dl>
-          <p className="field-hint">سيتم تأكيد الحجز من المسؤول.</p>
           <button type="button" className="btn btn-primary btn-lg btn-block" onClick={onClose}>
             العودة للحجوزات
           </button>
