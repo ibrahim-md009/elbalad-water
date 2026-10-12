@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ── المستخدمون: التسجيل من الموقع، والقراءة من لوحة التحكم ──
+    match /users/{userId} {
+      allow read: if true;                    // لوحة التحكم تقرأ المستخدمين
+      allow create: if request.auth != null;  // المستخدم ينشئ وثيقته بعد التسجيل
+      // مؤقتًا للتطوير: اسمح بالتحديث من أي حساب (زر "حفظ" الحد الأسبوعي)
+      // TODO: في مرحلة صلاحيات الأدمن ارجعها لـ if false وخلّ التحديث عبر الأدمن فقط
+      allow update: if true;
+      allow delete: if false;
+    }
+  }
+}

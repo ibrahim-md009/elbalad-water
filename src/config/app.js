@@ -16,6 +16,7 @@ export const COLLECTIONS = {
   reservations: "reservations",
   paymentMethods: "paymentMethods",
   settings: "settings",
+  users: "users",
 };
 
 export const SETTINGS_DOC = "general";
