@@ -1,8 +1,7 @@
 import { Clock, Droplets } from "lucide-react";
-import { useBookingQuota } from "../hooks/useBookingQuota";
+import { formatMinutes } from "../lib/format";
 
 export default function AvailabilityCard({ item, onBook }) {
-  const quota = useBookingQuota();
   return (
     <article className="card av-card">
       <div className="av-top">
@@ -17,14 +16,8 @@ export default function AvailabilityCard({ item, onBook }) {
         <span>{item.dateText}</span>
       </p>
       <p>{item.notes}</p>
-      <button
-        type="button"
-        className="btn btn-primary btn-lg btn-block"
-        disabled={quota.reached}
-        title={quota.reached ? "وصلت للحد الأسبوعي المسموح لك" : undefined}
-        onClick={() => onBook(item)}
-      >
-        {quota.reached ? "وصلت للحد الأسبوعي" : "احجز الآن"}
+      <button type="button" className="btn btn-primary btn-lg btn-block" onClick={() => onBook(item)}>
+        احجز الآن
       </button>
     </article>
   );

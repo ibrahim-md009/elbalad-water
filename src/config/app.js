@@ -9,6 +9,8 @@ export const CURRENCY = "₪";
 export const DEFAULT_SETTINGS = {
   minutesPerCup: 20,
   pricePerCup: 10,
+  /** الحد الأسبوعي الافتراضي للعميل الجديد (يُضبط من الداش) */
+  defaultWeeklyLimit: 3,
 };
 
 export const COLLECTIONS = {
@@ -16,7 +18,7 @@ export const COLLECTIONS = {
   reservations: "reservations",
   paymentMethods: "paymentMethods",
   settings: "settings",
-  users: "users",
+  customers: "customers",
 };
 
 export const SETTINGS_DOC = "general";

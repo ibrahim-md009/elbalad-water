@@ -4,13 +4,17 @@ import { COLLECTIONS, SETTINGS_DOC } from '../config/app';
 import { AVAILABILITY_STATUS, RESERVATION_STATUS as S } from '../lib/constants';
 import { AppError } from '../lib/errors';
 import { calcPrice, normalizeSettings } from '../lib/pricing';
-import { weekIndex } from '../lib/week';
+import { toDate } from '../lib/format';
+import { isSameWeek } from '../lib/week';
+import { customerRef } from './customers';
 
 export const MINUTES_UNAVAILABLE = 'minutes-unavailable';
 export const MINUTES_UNAVAILABLE_MESSAGE = 'عذرًا، لم تعد هذه الدقائق متاحة. يرجى اختيار موعد آخر.';
-export const WEEKLY_LIMIT = 'weekly-limit';
-export const WEEKLY_LIMIT_MESSAGE = 'وصلت للحد الأسبوعي المسموح لك من الحجوزات. جرّب الأسبوع القادم.';
 const unavailable = () => new AppError(MINUTES_UNAVAILABLE_MESSAGE, MINUTES_UNAVAILABLE);
+
+export const NOT_REGISTERED = 'not-registered';
+export const WEEKLY_LIMIT = 'weekly-limit';
+export const CUSTOMER_BLOCKED = 'customer-blocked';
 
 const availabilityRef = (id) => doc(db, COLLECTIONS.availability, id);
 
@@ -33,75 +37,104 @@ export async function assertMinutesAvailable(availabilityId, minutes) {
 }
 
 /**
- * إنشاء طلب حجز (status = pending) مع خصم الدقائق داخل Firestore Transaction.
- * مطابق لـ createReservation في الـ Dashboard، والحقول مطابقة تمامًا لـ firestore.rules.
+ * إنشاء طلب حجز (status = pending) مع:
+ *  1) خصم الدقائق من الدفعة، و
+ *  2) زيادة عدّاد العميل الأسبوعي (ضمن حدّه)
+ * كلاهما داخل Firestore Transaction واحدة، وقواعد Firestore تتحقق منهما من جهة الخادم.
  * طلبان متزامنان على نفس الدقائق: ينجح واحد فقط ولا يصبح الرصيد سالبًا.
  */
-export async function createReservation({ name, phone, minutes, availabilityId, receiptUrl, notes = '', userId = null }) {
+export async function createReservation({ customerPhone, minutes, availabilityId, receiptUrl, notes = '' }) {
   const m = Number(minutes);
   if (!Number.isInteger(m) || m <= 0) throw new AppError('عدد الدقائق غير صحيح.');
-  if (!name?.trim() || !phone?.trim()) throw new AppError('الاسم ورقم الهاتف مطلوبان.');
+  if (!customerPhone) throw new AppError('سجّل اسمك ورقمك أولًا.', NOT_REGISTERED);
   if (!receiptUrl) throw new AppError('صورة الوصل مطلوبة.');
 
   const aRef = availabilityRef(availabilityId);
   const sRef = doc(db, COLLECTIONS.settings, SETTINGS_DOC);
+  const cRef = customerRef(customerPhone);
   const rRef = doc(collection(db, COLLECTIONS.reservations));
-  // المستخدم المسجل: يُخصم حجز من رصيده الأسبوعي في نفس العملية
-  const uRef = userId ? doc(db, COLLECTIONS.users, userId) : null;
 
-  await runTransaction(db, async (tx) => {
-    const aSnap = await tx.get(aRef);
-    const sSnap = await tx.get(sRef);
-    const uSnap = uRef ? await tx.get(uRef) : null;
-    if (!aSnap.exists()) throw unavailable();
+  // flipWeek: إن اختلف توقيت جهاز العميل عن توقيت الخادم (عند حدود الأسبوع أو ساعة خاطئة)
+  // تُرفض العملية من القواعد، فنعيد المحاولة مرة واحدة بالتخمين المعاكس لأسبوع العدّاد.
+  const attempt = (flipWeek) =>
+    runTransaction(db, async (tx) => {
+      // كل القراءات أولًا
+      const aSnap = await tx.get(aRef);
+      const sSnap = await tx.get(sRef);
+      const cSnap = await tx.get(cRef);
 
-    const a = aSnap.data();
-    const available = Number(a.availableMinutes) || 0;
-    if (a.status !== AVAILABILITY_STATUS.AVAILABLE || available < m) throw unavailable();
+      if (!cSnap.exists()) {
+        throw new AppError('سجّل اسمك ورقمك أولًا.', NOT_REGISTERED);
+      }
+      const c = cSnap.data();
+      if (c.blocked === true) {
+        throw new AppError('تعذر إتمام الحجز حاليًا، يرجى التواصل مع الإدارة.', CUSTOMER_BLOCKED);
+      }
 
-    // الحد الأسبوعي (القراءة قبل أي كتابة داخل الـ Transaction)
-    let nextCount = null;
-    const week = weekIndex();
-    if (uSnap?.exists()) {
-      const u = uSnap.data();
-      const limit = Number(u.weeklyBookingLimit ?? 1);
-      const used = u.bookingWeek === week ? Number(u.bookingCount) || 0 : 0;
-      if (used >= limit) throw new AppError(WEEKLY_LIMIT_MESSAGE, WEEKLY_LIMIT);
-      nextCount = used + 1;
-    }
+      let sameWeek = isSameWeek(toDate(c.lastBookingAt), new Date());
+      if (flipWeek) sameWeek = !sameWeek;
+      const used = sameWeek ? Number(c.weekCount) || 0 : 0;
+      const limit = Number(c.weeklyLimit) || 0;
+      if (used + 1 > limit) {
+        throw new AppError('وصلت للحد الأسبوعي للحجوزات. يتجدد يوم السبت.', WEEKLY_LIMIT);
+      }
 
-    const settings = normalizeSettings(sSnap.exists() ? sSnap.data() : null);
-    const nextAvailable = available - m;
-    const nextReserved = (Number(a.reservedMinutes) || 0) + m;
+      if (!aSnap.exists()) throw unavailable();
+      const a = aSnap.data();
+      const available = Number(a.availableMinutes) || 0;
+      if (a.status !== AVAILABILITY_STATUS.AVAILABLE || available < m) throw unavailable();
 
-    tx.update(aRef, {
-      availableMinutes: nextAvailable,
-      reservedMinutes: nextReserved,
-      status: computeAvailabilityStatus({
-        ...a,
+      const settings = normalizeSettings(sSnap.exists() ? sSnap.data() : null);
+      const nextAvailable = available - m;
+      const nextReserved = (Number(a.reservedMinutes) || 0) + m;
+
+      // ثم الكتابات
+      tx.update(cRef, {
+        weekCount: used + 1,
+        lastBookingAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      tx.update(aRef, {
         availableMinutes: nextAvailable,
         reservedMinutes: nextReserved,
-      }),
-      updatedAt: serverTimestamp(),
+        status: computeAvailabilityStatus({
+          ...a,
+          availableMinutes: nextAvailable,
+          reservedMinutes: nextReserved,
+        }),
+        updatedAt: serverTimestamp(),
+      });
+
+      tx.set(rRef, {
+        name: String(c.name || '').trim(),
+        phone: customerPhone,
+        minutes: m,
+        price: calcPrice(m, settings),
+        minutesPerCup: settings.minutesPerCup,
+        pricePerCup: settings.pricePerCup,
+        availabilityId,
+        dateText: a.dateText || '',
+        notes: (notes || '').trim(),
+        receiptUrl,
+        status: S.PENDING,
+        createdAt: serverTimestamp(),
+      });
     });
 
-    if (nextCount !== null) tx.update(uRef, { bookingWeek: week, bookingCount: nextCount });
-
-    tx.set(rRef, {
-      name: name.trim(),
-      phone: phone.trim(),
-      minutes: m,
-      price: calcPrice(m, settings),
-      minutesPerCup: settings.minutesPerCup,
-      pricePerCup: settings.pricePerCup,
-      availabilityId,
-      dateText: a.dateText || '',
-      notes: (notes || '').trim(),
-      receiptUrl,
-      status: S.PENDING,
-      createdAt: serverTimestamp(),
-    });
-  });
+  try {
+    await attempt(false);
+  } catch (err) {
+    // قواعد Firestore هي الحَكَم: نعيد المحاولة مرة واحدة بالتخمين المعاكس عند الرفض أو عند ظهور "الحد"
+    if (err?.code !== 'permission-denied' && err?.code !== WEEKLY_LIMIT) throw err;
+    try {
+      await attempt(true);
+    } catch (err2) {
+      // إن كان الحد حقيقيًا يرفض الخادم المحاولة الثانية، فنعرض رسالة الحد الواضحة
+      if (err?.code === WEEKLY_LIMIT && err2?.code === 'permission-denied') throw err;
+      throw err2;
+    }
+  }
 
   return rRef.id;
 }

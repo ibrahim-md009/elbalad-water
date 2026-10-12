@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, ExternalLink, Loader2, LogIn } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Modal from "./Modal";
 import ReceiptUpload from "./ReceiptUpload";
 import { calcPrice } from "../lib/pricing";
 import { formatMinutes, formatMoney } from "../lib/format";
-import { normalizePhone, validatePhone } from "../lib/phone";
+import { useCustomer } from "../context/CustomerContext";
 import { toArabicError } from "../lib/errors";
 import { withTimeout } from "../lib/timeout";
-import { useAuth } from "../context/AuthContext";
-import { useBookingQuota } from "../hooks/useBookingQuota";
 import { uploadReceipt } from "../services/receipts";
 import {
+  CUSTOMER_BLOCKED,
+  NOT_REGISTERED,
+  WEEKLY_LIMIT,
   MINUTES_UNAVAILABLE,
   MINUTES_UNAVAILABLE_MESSAGE,
   assertMinutesAvailable,
@@ -26,13 +27,7 @@ const UPLOAD_ERROR = "تعذر رفع صورة الوصل، حاول مرة أخ
  * snapshot: بيانات الدفعة وقت الفتح (للعرض في شاشة النجاح).
  */
 export default function BookingModal({ open, item, snapshot, settings, onClose, onGone }) {
-  const { status, user, profile } = useAuth();
-  const quota = useBookingQuota();
-  // لو المستخدم مسجل دخول: الاسم والرقم يتعبّوا تلقائي من حسابه (وفضل قابلين للتعديل)
-  const accountName = profile?.name || "";
-  const accountPhone = profile?.phone || user?.email?.split("@")[0] || "";
-  const [name, setName] = useState(accountName);
-  const [phone, setPhone] = useState(accountPhone);
+  const { customer, allowance, forget } = useCustomer();
   const [minutes, setMinutes] = useState("");
   const [notes, setNotes] = useState("");
   const [receipt, setReceipt] = useState(null);
@@ -41,13 +36,6 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
   const [formError, setFormError] = useState("");
   const [result, setResult] = useState(null);
   const goneNotified = useRef(false);
-
-  // لو البيانات وصلت بعد فتح الفورم (تحميل الحساب أو تسجيل دخول من تبويب تاني): نعبّي الفاضي بس
-  useEffect(() => {
-    if (status !== "authed") return;
-    setName((n) => n || accountName);
-    setPhone((p) => p || accountPhone);
-  }, [status, accountName, accountPhone]);
 
   const busy = phase === "uploading" || phase === "submitting";
   const available = Number(item?.availableMinutes) || 0;
@@ -61,15 +49,26 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
     }
   }, [open, item, available, phase, onGone]);
 
+  // لا يستطيع الحجز: محظور أو استنفد حدّه الأسبوعي
+  const blockedReason = !customer
+    ? "سجّل اسمك ورقمك أولًا."
+    : allowance?.blocked
+      ? "تعذر إتمام الحجز حاليًا، يرجى التواصل مع الإدارة."
+      : allowance?.known && allowance.remaining < 1
+        ? `وصلت للحد الأسبوعي للحجوزات (${allowance.limit}). يتجدد يوم السبت.`
+        : "";
+
+  const switchAccount = () => {
+    forget();
+    onClose();
+  };
+
   const mins = Number(minutes);
   const minutesValid = minutes !== "" && Number.isInteger(mins) && mins > 0;
   const price = useMemo(() => (minutesValid ? calcPrice(mins, settings) : 0), [minutesValid, mins, settings]);
 
   const validate = () => {
     const next = {};
-    if (!name.trim()) next.name = "أدخل اسمك الكامل.";
-    const phoneError = validatePhone(phone);
-    if (phoneError) next.phone = phoneError;
     if (minutes === "") next.minutes = "أدخل عدد الدقائق.";
     else if (!Number.isInteger(mins) || mins <= 0) next.minutes = "أدخل عدد دقائق صحيح أكبر من صفر.";
     else if (mins > available) next.minutes = "الرقم المطلوب غير متوفر";
@@ -82,8 +81,8 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
     e.preventDefault();
     if (busy) return;
     setFormError("");
-    if (quota.reached) {
-      setFormError("وصلت للحد الأسبوعي المسموح لك من الحجوزات.");
+    if (blockedReason) {
+      setFormError(blockedReason);
       return;
     }
     if (!validate()) return;
@@ -110,13 +109,11 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
       setPhase("submitting");
       await withTimeout(
         createReservation({
-          name,
-          phone: normalizePhone(phone),
+          customerPhone: customer.phone,
           minutes: mins,
           availabilityId: snapshot.id,
           receiptUrl,
           notes,
-          userId: status === "authed" ? user?.uid : null,
         }),
         25000,
         SUBMIT_ERROR,
@@ -132,6 +129,10 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
         return;
       }
       setPhase("idle");
+      if ([WEEKLY_LIMIT, CUSTOMER_BLOCKED, NOT_REGISTERED].includes(err?.code)) {
+        setFormError(err.message);
+        return;
+      }
       setFormError(err?.name === "AppError" ? toArabicError(err) : SUBMIT_ERROR);
     }
   };
@@ -178,45 +179,29 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
           <strong>{snapshot?.dateText}</strong>
         </div>
 
-        {status === "anon" && (
-          <div className="booking-login-hint">
-            <span>عندك حساب؟ سجّل دخولك وهنعبّي اسمك ورقمك تلقائيًا.</span>
-            <Link to="/signIn" target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm">
-              <LogIn size={16} aria-hidden="true" /> تسجيل / دخول
-            </Link>
+        {customer && (
+          <div className="customer-box">
+            <div>
+              <span>الاسم</span>
+              <strong>{customer.name}</strong>
+            </div>
+            <div>
+              <span>رقم الهاتف</span>
+              <strong dir="ltr">{customer.phone}</strong>
+            </div>
+            <button type="button" className="link-btn" onClick={switchAccount} disabled={busy}>
+              ليس أنت؟ سجّل برقم آخر
+            </button>
           </div>
         )}
 
-        <div className="field">
-          <label htmlFor="bk-name">الاسم الكامل</label>
-          <input
-            id="bk-name"
-            className={`input ${errors.name ? "invalid" : ""}`}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="name"
-            maxLength={100}
-            disabled={busy}
-          />
-          {errors.name && <span className="field-error">{errors.name}</span>}
-        </div>
-
-        <div className="field">
-          <label htmlFor="bk-phone">رقم الهاتف</label>
-          <input
-            id="bk-phone"
-            className={`input ${errors.phone ? "invalid" : ""}`}
-            dir="ltr"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="05XXXXXXXX"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            maxLength={20}
-            disabled={busy}
-          />
-          {errors.phone && <span className="field-error">{errors.phone}</span>}
-        </div>
+        {allowance?.known && !allowance.blocked && (
+          <p className={`allowance ${allowance.remaining < 1 ? "is-out" : ""}`}>
+            {allowance.unlimited
+              ? "حجوزاتك هذا الأسبوع: بدون حد"
+              : `المتبقي لك هذا الأسبوع: ${allowance.remaining} من ${allowance.limit} حجوزات`}
+          </p>
+        )}
 
         <div className="field">
           <label htmlFor="bk-minutes">عدد الدقائق</label>
@@ -260,12 +245,6 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
           />
         </div>
 
-        {quota.reached && (
-          <div className="alert alert-error" role="alert">
-            <span>وصلت للحد الأسبوعي المسموح لك ({quota.limit} حجز). يتجدد الحد كل أسبوع.</span>
-          </div>
-        )}
-
         {formError && (
           <div className="alert alert-error" role="alert">
             <span>{formError}</span>
@@ -273,7 +252,7 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
         )}
 
         <div className="booking-actions">
-          <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || quota.reached}>
+          <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || !!blockedReason}>
             {busy && <Loader2 className="spin" size={18} aria-hidden="true" />}
             {submitLabel}
           </button>

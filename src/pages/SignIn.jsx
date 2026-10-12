@@ -99,7 +99,7 @@ export default function SignIn() {
       const snap = await getDoc(doc(db, COLLECTIONS.users, user.uid));
       if (!snap.exists()) {
         await signOut(auth);
-        toast.error("الرقم ده مش مسجل عندنا (يمكن اتحذف)، أنشئ حساب جديد.");
+        toast.error("لا يوجد حساب بهذا الرقم، أنشئ حسابًا  .");
         setMode("register");
         return;
       }
@@ -113,20 +113,20 @@ export default function SignIn() {
         case "auth/invalid-credential":
         case "auth/user-not-found":
         case "auth/wrong-password":
-          toast.error("الرقم ده مش مسجل عندنا، أنشئ حساب جديد الأول.");
+          toast.error("لا يوجد حساب بهذا الرقم، أنشئ حسابًا  .");
           setMode("register");
           break;
         case "auth/invalid-email":
           toast.error("رقم الهاتف غير صالح.");
           break;
         case "auth/too-many-requests":
-          toast.error("محاولات كتير، استنى شوية وحاول تاني.");
+          toast.error("محاولات كتير، انتظر قليلا وحاول مجددا.");
           break;
         case "auth/network-request-failed":
-          toast.error("مشكلة في الاتصال بالإنترنت، حاول تاني.");
+          toast.error("مشكلة في الاتصال بالإنترنت، حاول مرة أخرى.");
           break;
         default:
-          toast.error("حصل خطأ أثناء تسجيل الدخول، حاول تاني.");
+          toast.error("حصل خطأ أثناء تسجيل الدخول، حاول مرة أخرى.");
       }
     } finally {
       setLoading(false);
@@ -196,20 +196,20 @@ export default function SignIn() {
         } catch (delErr) {
           console.error(delErr);
         }
-        toast.error("تعذّر حفظ بياناتك، حاول تاني.");
+        toast.error("تعذّر حفظ بياناتك، حاول مرة أخرى.");
       } else if (err.code === "auth/email-already-in-use") {
         try {
           await recoverExistingAccount(name, form.phone);
         } catch (recErr) {
           console.error(recErr);
-          toast.error("الرقم ده مسجل بطريقة قديمة، كلّم الإدارة.");
+          toast.error("هذا الرقم مسجل بطريقة قديمة، كلّم الإدارة.");
         }
       } else if (err.code === "auth/invalid-email") {
         toast.error("رقم الهاتف غير صالح.");
       } else if (err.code === "auth/network-request-failed") {
-        toast.error("مشكلة في الاتصال بالإنترنت، حاول تاني.");
+        toast.error("مشكلة في الاتصال بالإنترنت، حاول مرة أخرى.");
       } else {
-        toast.error("حصل خطأ أثناء إنشاء الحساب، حاول تاني.");
+        toast.error("حصل خطأ أثناء إنشاء الحساب، حاول مرة أخرى.");
       }
     } finally {
       setLoading(false);
@@ -246,7 +246,7 @@ export default function SignIn() {
           </span>
           <div>
             <h1>{isLogin ? "تسجيل الدخول" : "إنشاء حساب جديد"}</h1>
-            <p>{isLogin ? "ادخل برقم هاتفك المسجل" : "سجّل مرة واحدة باسمك ورقمك وارجع تحجز بضغطة زر"}</p>
+            <p>{isLogin ? "ادخل برقم هاتفك المسجل" : "سجّل مرة واحدة باسمك ورقمك واحجز بضغطة زر"}</p>
           </div>
         </div>
 
@@ -303,7 +303,7 @@ export default function SignIn() {
               autoComplete="tel"
               required
             />
-            {!isLogin && <small className="field-hint">هتسجل دخولك بهذا الرقم لاحقًا.</small>}
+            {!isLogin && <small className="field-hint">ستسجل دخولك بهذا الرقم لاحقًا.</small>}
           </div>
 
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>

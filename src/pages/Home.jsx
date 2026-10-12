@@ -1,27 +1,56 @@
-import { useCallback, useEffect, useState } from "react";
-import { CalendarX } from "lucide-react";
-import { useAvailability } from "../hooks/useAvailability";
-import { useSettings } from "../hooks/useSettings";
-import { useBookingQuota } from "../hooks/useBookingQuota";
-import { useToast } from "../context/ToastContext";
-import AvailabilityCard from "../components/AvailabilityCard";
-import BookingModal from "../components/BookingModal";
-import CardSkeletons from "../components/CardSkeletons";
-import EmptyState from "../components/EmptyState";
-import ErrorState from "../components/ErrorState";
-import { toArabicError } from "../lib/errors";
+import { useCallback, useEffect, useState } from 'react';
+import { CalendarX } from 'lucide-react';
+import { useAvailability } from '../hooks/useAvailability';
+import { useSettings } from '../hooks/useSettings';
+import { useToast } from '../context/ToastContext';
+import AvailabilityCard from '../components/AvailabilityCard';
+import BookingModal from '../components/BookingModal';
+import CardSkeletons from '../components/CardSkeletons';
+import EmptyState from '../components/EmptyState';
+import ErrorState from '../components/ErrorState';
+import RegisterModal from '../components/RegisterModal';
+import { useCustomer } from '../context/CustomerContext';
+import { toArabicError } from '../lib/errors';
 
 export default function Home() {
   const { items, loading, error, retry } = useAvailability();
   const settings = useSettings();
-  const quota = useBookingQuota();
   const toast = useToast();
+  const { status } = useCustomer();
   const [selected, setSelected] = useState(null); // نسخة وقت الفتح
+  const [regOpen, setRegOpen] = useState(false);
+  const [pendingItem, setPendingItem] = useState(null); // الموعد الذي ضغط عليه قبل التسجيل
   const live = selected ? items.find((a) => a.id === selected.id) || null : null;
 
   useEffect(() => {
-    document.title = "مياهك | احجز موعد تعبئة المياه";
+    document.title = 'مياهك | احجز موعد تعبئة المياه';
   }, []);
+
+  // أول زيارة (غير مسجّل): نطلب الاسم والرقم مرة واحدة
+  useEffect(() => {
+    if (status === 'guest') setRegOpen(true);
+  }, [status]);
+
+  const handleBook = useCallback(
+    (item) => {
+      if (status !== 'ready') {
+        setPendingItem(item);
+        setRegOpen(true);
+        return;
+      }
+      setSelected(item);
+    },
+    [status],
+  );
+  const closeRegister = useCallback(() => {
+    setRegOpen(false);
+    setPendingItem(null);
+  }, []);
+  const onRegistered = useCallback(() => {
+    setRegOpen(false);
+    if (pendingItem) setSelected(pendingItem);
+    setPendingItem(null);
+  }, [pendingItem]);
 
   const close = useCallback(() => setSelected(null), []);
   const onGone = useCallback(
@@ -39,19 +68,6 @@ export default function Home() {
         <p>اختر الوقت المناسب لك واحجز بالدقائق.</p>
       </section>
 
-      {quota.tracked &&
-        (quota.reached ? (
-          <div className="alert alert-error" role="alert">
-            <span>وصلت للحد الأسبوعي المسموح لك ({quota.limit} حجز). يتجدد الحد كل أسبوع.</span>
-          </div>
-        ) : (
-          <div className="booking-login-hint">
-            <span>
-              متبقي لك <strong>{quota.remaining}</strong> من {quota.limit} حجز هذا الأسبوع.
-            </span>
-          </div>
-        ))}
-
       {loading ? (
         <CardSkeletons />
       ) : error ? (
@@ -66,12 +82,14 @@ export default function Home() {
       ) : (
         <div className="av-grid">
           {items.map((item) => (
-            <AvailabilityCard key={item.id} item={item} onBook={setSelected} />
+            <AvailabilityCard key={item.id} item={item} onBook={handleBook} />
           ))}
         </div>
       )}
 
-      {selected && (
+      <RegisterModal open={regOpen && status === 'guest'} onClose={closeRegister} onDone={onRegistered} />
+
+      {selected && status === 'ready' && (
         <BookingModal
           key={selected.id}
           open
