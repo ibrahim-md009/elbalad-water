@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogIn, LogOut, UserCheck, UserPlus } from "lucide-react";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { COLLECTIONS } from "../config/app";
 import { normalizePhone, phoneToEmail, phoneToPassword, validatePhone } from "../lib/phone";
@@ -12,7 +12,7 @@ import { useToast } from "../context/ToastContext";
 const initialForm = { name: "", phone: "" };
 
 /** الشاشة اللي بتظهر لما الزائر يكون مسجل دخول بالفعل */
-function AlreadyRegistered({ profile, onLogout }) {
+function AlreadyRegistered({ profile, fallbackPhone, profileError, onLogout }) {
   const navigate = useNavigate();
   return (
     <section className="signin-page">
@@ -34,13 +34,21 @@ function AlreadyRegistered({ profile, onLogout }) {
           </div>
           <div>
             <dt>رقم الهاتف</dt>
-            <dd dir="ltr">{profile?.phone || "—"}</dd>
+            <dd dir="ltr">{profile?.phone || fallbackPhone || "—"}</dd>
           </div>
           <div>
             <dt>حد الحجوزات الأسبوعي</dt>
             <dd>{profile?.weeklyBookingLimit ?? 1} حجز</dd>
           </div>
         </dl>
+
+        {!profile && profileError && (
+          <div className="alert alert-error" role="alert" style={{ marginBottom: "1rem" }}>
+            <span>
+              تعذّر تحميل بياناتك من الخادم ({profileError}). غالبًا السبب صلاحيات Firestore Rules على مجموعة users.
+            </span>
+          </div>
+        )}
 
         <div className="stack">
           <button type="button" className="btn btn-primary btn-block" onClick={() => navigate("/")}>
@@ -58,7 +66,7 @@ function AlreadyRegistered({ profile, onLogout }) {
 export default function SignIn() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { status, profile, logout } = useAuth();
+  const { status, user, profile, profileError, logout } = useAuth();
   const [mode, setMode] = useState("login"); // login | register
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
@@ -85,7 +93,17 @@ export default function SignIn() {
 
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, phoneToEmail(form.phone), phoneToPassword(form.phone));
+      const { user } = await signInWithEmailAndPassword(auth, phoneToEmail(form.phone), phoneToPassword(form.phone));
+
+      // لو المسؤول حذف المستخدم من لوحة التحكم، حساب الدخول يفضل موجود لكن وثيقته اتمسحت
+      const snap = await getDoc(doc(db, COLLECTIONS.users, user.uid));
+      if (!snap.exists()) {
+        await signOut(auth);
+        toast.error("الرقم ده مش مسجل عندنا (يمكن اتحذف)، أنشئ حساب جديد.");
+        setMode("register");
+        return;
+      }
+
       toast.success("تم تسجيل الدخول، أهلًا بك! 👋");
       setForm(initialForm);
       navigate("/");
@@ -115,6 +133,35 @@ export default function SignIn() {
     }
   };
 
+  /** وثيقة المستخدم: الاسم ورقم الهاتف (+ الدور وحد الحجز). مفيش أي كلمة مرور. */
+  const saveProfile = async (uid, name, phone) => {
+    const userData = {
+      name,
+      phone,
+      role: "user",
+      weeklyBookingLimit: 1, // الافتراضي — المسؤول يعدّله من لوحة التحكم
+    };
+    await setDoc(doc(db, COLLECTIONS.users, uid), { ...userData, createdAt: serverTimestamp() });
+    setJustRegistered(userData);
+  };
+
+  /**
+   * الرقم له حساب دخول موجود: يا إما مسجل فعلًا (ندخّله)،
+   * يا إما المسؤول حذفه من لوحة التحكم (نعيد إنشاء وثيقته بالاسم الجديد).
+   */
+  const recoverExistingAccount = async (name, phone) => {
+    const { user } = await signInWithEmailAndPassword(auth, phoneToEmail(phone), phoneToPassword(phone));
+    const snap = await getDoc(doc(db, COLLECTIONS.users, user.uid));
+    if (snap.exists()) {
+      toast.success("رقمك مسجل بالفعل، تم تسجيل دخولك. 👋");
+    } else {
+      await saveProfile(user.uid, name, normalizePhone(phone));
+      toast.success("تم إنشاء حسابك بنجاح، أهلًا بك! 🎉");
+    }
+    setForm(initialForm);
+    navigate("/");
+  };
+
   /** إنشاء حساب جديد: الاسم ورقم الهاتف فقط */
   const handleRegister = async () => {
     const name = form.name.trim();
@@ -134,19 +181,8 @@ export default function SignIn() {
       );
       createdUser = user;
 
-      // وثيقة المستخدم: الاسم ورقم الهاتف (+ الدور وحد الحجز). مفيش أي كلمة مرور.
-      const userData = {
-        name,
-        phone,
-        role: "user",
-        weeklyBookingLimit: 1, // الافتراضي — المسؤول يعدّله من لوحة التحكم
-      };
-      await setDoc(doc(db, COLLECTIONS.users, user.uid), {
-        ...userData,
-        createdAt: serverTimestamp(),
-      });
+      await saveProfile(user.uid, name, phone);
 
-      setJustRegistered(userData);
       toast.success("تم إنشاء حسابك بنجاح، أهلًا بك! 🎉");
       setForm(initialForm);
       navigate("/");
@@ -162,9 +198,12 @@ export default function SignIn() {
         }
         toast.error("تعذّر حفظ بياناتك، حاول تاني.");
       } else if (err.code === "auth/email-already-in-use") {
-        toast.error("رقم الهاتف مسجل قبل كده، سجّل دخولك.");
-        setMode("login");
-        setForm((f) => ({ ...initialForm, phone: f.phone }));
+        try {
+          await recoverExistingAccount(name, form.phone);
+        } catch (recErr) {
+          console.error(recErr);
+          toast.error("الرقم ده مسجل بطريقة قديمة، كلّم الإدارة.");
+        }
       } else if (err.code === "auth/invalid-email") {
         toast.error("رقم الهاتف غير صالح.");
       } else if (err.code === "auth/network-request-failed") {
@@ -186,7 +225,16 @@ export default function SignIn() {
   // لو الزائر مسجل دخول: نعرض بياناته بدل الفورم
   // (مش بنعرضها أثناء عملية الدخول/التسجيل نفسها عشان ما تظهرش بيانات فاضية)
   if (status === "authed" && !loading) {
-    return <AlreadyRegistered profile={profile ?? justRegistered} onLogout={logout} />;
+    // رقم الهاتف مشتق من الإيميل الصناعي (phone@user...) كاحتياط لو وثيقة المستخدم لم تُقرأ
+    const fallbackPhone = user?.email?.split("@")[0] || "";
+    return (
+      <AlreadyRegistered
+        profile={profile ?? justRegistered}
+        fallbackPhone={fallbackPhone}
+        profileError={profileError}
+        onLogout={logout}
+      />
+    );
   }
 
   return (
@@ -270,7 +318,7 @@ export default function SignIn() {
         </form>
 
         <p style={{ textAlign: "center", marginTop: "1rem" }}>
-          {isLogin ? "معندكش حساب؟ " : "عندك حساب بالفعل؟ "}
+          {isLogin ? "لا يوجد لديك حساب؟ " : "عندك حساب بالفعل؟ "}
           <button
             type="button"
             className="btn btn-ghost btn-sm"

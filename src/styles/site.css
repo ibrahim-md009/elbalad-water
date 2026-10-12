@@ -516,7 +516,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--input-bg);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .signin-form input:focus {
   outline: none;
@@ -533,4 +535,75 @@
 .field-hint {
   color: var(--text-2);
   font-size: 0.82rem;
+}
+
+/* ───────── الهيدر المتجاوب + تنبيه تسجيل الدخول في فورم الحجز ───────── */
+.site-header-inner > .btn-icon {
+  flex-shrink: 0;
+}
+.site-nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px; /* نفس ارتفاع الأزرار وزر الثيم */
+  white-space: nowrap;
+}
+.site-brand {
+  min-width: 0;
+}
+.site-brand span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  /* صف أول: الشعار + زر الثيم — صف تاني: التنقل بعرض كامل وتبويبات متساوية */
+  .site-header-inner {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    min-height: 0;
+    padding-block: 8px;
+  }
+  .site-brand {
+    order: 1;
+    margin-inline-end: auto;
+  }
+  .site-header-inner > .btn-icon {
+    order: 2;
+  }
+  .site-nav {
+    order: 3;
+    width: 100%;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .site-nav a {
+    min-height: 40px;
+    padding: 6px 8px;
+    font-size: 0.95rem;
+  }
+}
+@media (max-width: 380px) {
+  .site-nav a svg {
+    display: none; /* شاشات ضيقة جدًا: نص فقط */
+  }
+}
+
+.booking-login-hint {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--hover);
+  font-size: 0.95rem;
+  color: var(--text-2);
 }

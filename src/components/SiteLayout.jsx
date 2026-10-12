@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { CalendarDays, CreditCard, UserRound } from "lucide-react";
 import { useEffect } from "react";
 import { APP_NAME, APP_TAGLINE } from "../config/app";
 import Logo from "./Logo";
@@ -28,10 +29,17 @@ export default function SiteLayout() {
           </NavLink>
           <nav className="site-nav" aria-label="التنقل الرئيسي">
             <NavLink to="/" end>
-              الحجوزات
+              <CalendarDays size={18} aria-hidden="true" />
+              <span>الحجوزات</span>
             </NavLink>
-            <NavLink to="/payment">طرق الدفع</NavLink>
-            <NavLink to="/signIn">{status === "authed" ? "حسابي" : "تسجيل"}</NavLink>
+            <NavLink to="/payment">
+              <CreditCard size={18} aria-hidden="true" />
+              <span>طرق الدفع</span>
+            </NavLink>
+            <NavLink to="/signIn">
+              <UserRound size={18} aria-hidden="true" />
+              <span>{status === "authed" ? "حسابي" : "تسجيل"}</span>
+            </NavLink>
           </nav>
           <ThemeToggle variant="icon" />
         </div>

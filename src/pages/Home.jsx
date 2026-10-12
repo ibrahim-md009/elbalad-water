@@ -1,24 +1,26 @@
-import { useCallback, useEffect, useState } from 'react';
-import { CalendarX } from 'lucide-react';
-import { useAvailability } from '../hooks/useAvailability';
-import { useSettings } from '../hooks/useSettings';
-import { useToast } from '../context/ToastContext';
-import AvailabilityCard from '../components/AvailabilityCard';
-import BookingModal from '../components/BookingModal';
-import CardSkeletons from '../components/CardSkeletons';
-import EmptyState from '../components/EmptyState';
-import ErrorState from '../components/ErrorState';
-import { toArabicError } from '../lib/errors';
+import { useCallback, useEffect, useState } from "react";
+import { CalendarX } from "lucide-react";
+import { useAvailability } from "../hooks/useAvailability";
+import { useSettings } from "../hooks/useSettings";
+import { useBookingQuota } from "../hooks/useBookingQuota";
+import { useToast } from "../context/ToastContext";
+import AvailabilityCard from "../components/AvailabilityCard";
+import BookingModal from "../components/BookingModal";
+import CardSkeletons from "../components/CardSkeletons";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
+import { toArabicError } from "../lib/errors";
 
 export default function Home() {
   const { items, loading, error, retry } = useAvailability();
   const settings = useSettings();
+  const quota = useBookingQuota();
   const toast = useToast();
   const [selected, setSelected] = useState(null); // نسخة وقت الفتح
   const live = selected ? items.find((a) => a.id === selected.id) || null : null;
 
   useEffect(() => {
-    document.title = 'مياهك | احجز موعد تعبئة المياه';
+    document.title = "مياهك | احجز موعد تعبئة المياه";
   }, []);
 
   const close = useCallback(() => setSelected(null), []);
@@ -36,6 +38,19 @@ export default function Home() {
         <h1>احجز موعد تعبئة المياه</h1>
         <p>اختر الوقت المناسب لك واحجز بالدقائق.</p>
       </section>
+
+      {quota.tracked &&
+        (quota.reached ? (
+          <div className="alert alert-error" role="alert">
+            <span>وصلت للحد الأسبوعي المسموح لك ({quota.limit} حجز). يتجدد الحد كل أسبوع.</span>
+          </div>
+        ) : (
+          <div className="booking-login-hint">
+            <span>
+              متبقي لك <strong>{quota.remaining}</strong> من {quota.limit} حجز هذا الأسبوع.
+            </span>
+          </div>
+        ))}
 
       {loading ? (
         <CardSkeletons />
