@@ -1,10 +1,17 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { CalendarCheck, UserRound, WalletCards } from "lucide-react";
 import { APP_NAME, APP_TAGLINE } from "../config/app";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 import MadeBy from "../components/MadeBy";
 import AdhkarBar from "./AdhkarBar";
+const NAV_ITEMS = [
+  { to: "/", label: "الحجوزات", icon: CalendarCheck, end: true },
+  { to: "/payment", label: "طرق الدفع", icon: WalletCards },
+  { to: "/me", label: "بياناتي", icon: UserRound },
+];
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -24,11 +31,11 @@ export default function SiteLayout() {
             <span>{APP_NAME}</span>
           </NavLink>
           <nav className="site-nav" aria-label="التنقل الرئيسي">
-            <NavLink to="/" end>
-              الحجوزات
-            </NavLink>
-            <NavLink to="/payment">طرق الدفع</NavLink>
-            <NavLink to="/me">بياناتي</NavLink>
+            {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+              <NavLink key={to} to={to} end={end} aria-label={label} title={label}>
+                <Icon size={22} aria-hidden="true" />
+              </NavLink>
+            ))}
           </nav>
           <ThemeToggle variant="icon" />
         </div>

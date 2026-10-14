@@ -57,21 +57,30 @@
 }
 .site-nav {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   margin-inline-start: auto;
 }
+/* أيقونات فقط، بنفس مقاس وشكل زر الوضع الليلي (44×44) لتكون متناسقة */
 .site-nav a {
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   text-decoration: none;
-  font-weight: 600;
   color: var(--text-2);
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 .site-nav a:hover {
   background: var(--hover);
 }
 .site-nav a.active {
   background: var(--nav-active-bg);
+  border-color: var(--nav-active-text);
   color: var(--nav-active-text);
 }
 
@@ -364,9 +373,6 @@
 @media (max-width: 420px) {
   .site-brand span:last-child {
     font-size: 1rem;
-  }
-  .site-nav a {
-    padding: 8px 10px;
   }
 }
 
