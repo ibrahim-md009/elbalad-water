@@ -28,6 +28,7 @@ export default function SiteLayout() {
               الحجوزات
             </NavLink>
             <NavLink to="/payment">طرق الدفع</NavLink>
+            <NavLink to="/me">بياناتي</NavLink>
           </nav>
           <ThemeToggle variant="icon" />
         </div>

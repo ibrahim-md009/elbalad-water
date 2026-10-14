@@ -9,8 +9,8 @@ export const CURRENCY = "₪";
 export const DEFAULT_SETTINGS = {
   minutesPerCup: 20,
   pricePerCup: 10,
-  /** الحد الأسبوعي الافتراضي للعميل الجديد (يُضبط من الداش) */
-  defaultWeeklyLimit: 3,
+  /** الحد الأسبوعي الافتراضي بالدقائق للعميل الجديد (يُضبط من الداش) */
+  defaultWeeklyMinutes: 60,
 };
 
 export const COLLECTIONS = {
@@ -31,3 +31,6 @@ export const CLOUDINARY = {
 
 /** مجلد وصلات الدفع داخل Cloudinary */
 export const RECEIPTS_FOLDER = "receipts";
+
+/** قيمة الحد الأسبوعي التي تعني «بدون حد» */
+export const UNLIMITED_MINUTES = 99999;

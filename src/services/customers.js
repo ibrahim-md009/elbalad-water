@@ -10,7 +10,7 @@ export const customerRef = (id) => doc(db, COLLECTIONS.customers, id);
 /**
  * تسجيل العميل مرة واحدة (اسم + رقم).
  * إن كان الرقم مسجّلًا مسبقًا (مثلًا عميل قديم أو سجّل من جهاز آخر) نعتمد سجله الحالي كما هو.
- * الحد الأسبوعي لا يحدده العميل: يُنشأ بالحد الافتراضي من settings/general وتفرضه قواعد Firestore.
+ * الحد الأسبوعي (بالدقائق) لا يحدده العميل: يُنشأ بالحد الافتراضي من settings/general وتفرضه قواعد Firestore.
  */
 export async function registerCustomer({ name, phone }) {
   const cleanName = (name || '').trim();
@@ -26,15 +26,15 @@ export async function registerCustomer({ name, phone }) {
   if (existing.exists()) return { id, ...existing.data(), existing: true };
 
   const settingsSnap = await getDoc(doc(db, COLLECTIONS.settings, SETTINGS_DOC));
-  const { defaultWeeklyLimit } = normalizeSettings(settingsSnap.exists() ? settingsSnap.data() : null);
+  const { defaultWeeklyMinutes } = normalizeSettings(settingsSnap.exists() ? settingsSnap.data() : null);
 
   try {
     await setDoc(ref, {
       name: cleanName,
       phone: id,
-      weeklyLimit: defaultWeeklyLimit,
+      weeklyMinutes: defaultWeeklyMinutes,
       blocked: false,
-      weekCount: 0,
+      weekMinutes: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

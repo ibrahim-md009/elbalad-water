@@ -39,7 +39,7 @@ export async function assertMinutesAvailable(availabilityId, minutes) {
 /**
  * إنشاء طلب حجز (status = pending) مع:
  *  1) خصم الدقائق من الدفعة، و
- *  2) زيادة عدّاد العميل الأسبوعي (ضمن حدّه)
+ *  2) زيادة دقائق العميل الأسبوعية (ضمن حدّه بالدقائق)
  * كلاهما داخل Firestore Transaction واحدة، وقواعد Firestore تتحقق منهما من جهة الخادم.
  * طلبان متزامنان على نفس الدقائق: ينجح واحد فقط ولا يصبح الرصيد سالبًا.
  */
@@ -71,12 +71,21 @@ export async function createReservation({ customerPhone, minutes, availabilityId
         throw new AppError('تعذر إتمام الحجز حاليًا، يرجى التواصل مع الإدارة.', CUSTOMER_BLOCKED);
       }
 
+      const settings = normalizeSettings(sSnap.exists() ? sSnap.data() : null);
+
       let sameWeek = isSameWeek(toDate(c.lastBookingAt), new Date());
       if (flipWeek) sameWeek = !sameWeek;
-      const used = sameWeek ? Number(c.weekCount) || 0 : 0;
-      const limit = Number(c.weeklyLimit) || 0;
-      if (used + 1 > limit) {
-        throw new AppError('وصلت للحد الأسبوعي للحجوزات. يتجدد يوم السبت.', WEEKLY_LIMIT);
+      const used = sameWeek ? Number(c.weekMinutes) || 0 : 0;
+      // سجل قديم بلا weeklyMinutes ← الحد الافتراضي (نفس منطق قواعد Firestore)
+      const limit = Number(c.weeklyMinutes ?? settings.defaultWeeklyMinutes) || 0;
+      if (used + m > limit) {
+        const left = Math.max(0, limit - used);
+        throw new AppError(
+          left > 0
+            ? `المتبقي لك هذا الأسبوع ${left} دقيقة فقط. يتجدد يوم السبت.`
+            : 'استنفدت دقائقك الأسبوعية. يتجدد يوم السبت.',
+          WEEKLY_LIMIT,
+        );
       }
 
       if (!aSnap.exists()) throw unavailable();
@@ -84,13 +93,12 @@ export async function createReservation({ customerPhone, minutes, availabilityId
       const available = Number(a.availableMinutes) || 0;
       if (a.status !== AVAILABILITY_STATUS.AVAILABLE || available < m) throw unavailable();
 
-      const settings = normalizeSettings(sSnap.exists() ? sSnap.data() : null);
       const nextAvailable = available - m;
       const nextReserved = (Number(a.reservedMinutes) || 0) + m;
 
       // ثم الكتابات
       tx.update(cRef, {
-        weekCount: used + 1,
+        weekMinutes: used + m,
         lastBookingAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });

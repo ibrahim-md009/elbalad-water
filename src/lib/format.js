@@ -9,6 +9,12 @@ const dateTimeFormat = new Intl.DateTimeFormat('ar-u-nu-latn-ca-gregory', {
   minute: '2-digit',
 });
 
+const dateFormat = new Intl.DateTimeFormat('ar-u-nu-latn-ca-gregory', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+});
+
 export function toDate(value) {
   if (!value) return null;
   if (typeof value.toDate === 'function') return value.toDate();
@@ -24,6 +30,11 @@ export const formatMoney = (n) => `${formatNumber(n)} ${CURRENCY}`;
 export function formatDateTime(value) {
   const d = toDate(value);
   return d ? dateTimeFormat.format(d) : '—';
+}
+
+export function formatDate(value) {
+  const d = toDate(value);
+  return d ? dateFormat.format(d) : '—';
 }
 
 /** رقم الدفعة بالشكل #001 */

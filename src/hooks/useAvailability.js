@@ -4,7 +4,10 @@ import { db } from '../firebase';
 import { COLLECTIONS } from '../config/app';
 import { AVAILABILITY_STATUS } from '../lib/constants';
 
-/** الدفعات القابلة للحجز فعليًا فقط (availableMinutes > 0 وحالتها available) — تحديث لحظي */
+/**
+ * الدفعات القابلة للحجز فعليًا فقط (availableMinutes > 0 وحالتها available ولم يخفِها المسؤول) — تحديث لحظي.
+ * الدفعات القديمة بدون حقل visible تُعتبر ظاهرة.
+ */
 export function useAvailability() {
   const [state, setState] = useState({ items: [], loading: true, error: null });
   const [attempt, setAttempt] = useState(0);
@@ -17,7 +20,12 @@ export function useAvailability() {
       (snap) => {
         const items = snap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((a) => a.status === AVAILABILITY_STATUS.AVAILABLE && Number(a.availableMinutes) > 0)
+          .filter(
+            (a) =>
+              a.status === AVAILABILITY_STATUS.AVAILABLE &&
+              Number(a.availableMinutes) > 0 &&
+              a.visible !== false,
+          )
           .sort((a, b) => (Number(a.number) || 0) - (Number(b.number) || 0));
         setState({ items, loading: false, error: null });
       },

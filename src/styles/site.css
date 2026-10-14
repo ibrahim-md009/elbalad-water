@@ -511,3 +511,68 @@
   margin: 0;
   text-align: center;
 }
+
+/* صفحة بياناتي */
+.me-card {
+  display: grid;
+  gap: 14px;
+  max-width: 480px;
+  margin-inline: auto;
+  padding: 20px;
+}
+.me-info {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.me-info li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.me-info svg {
+  color: var(--text-2);
+}
+.me-remaining {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--success-soft);
+  color: var(--success-text);
+  text-align: center;
+}
+.me-remaining.is-out {
+  background: var(--danger-soft, var(--accent-soft));
+  color: var(--danger-text, var(--text));
+}
+.me-remaining-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.me-remaining-value {
+  font-size: 1.8rem;
+}
+.me-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--neutral-soft);
+}
+.me-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.me-renew {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.9rem;
+}

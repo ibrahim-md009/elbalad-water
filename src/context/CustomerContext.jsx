@@ -3,6 +3,8 @@ import { onSnapshot } from 'firebase/firestore';
 import { customerRef, registerCustomer } from '../services/customers';
 import { toDate } from '../lib/format';
 import { isSameWeek } from '../lib/week';
+import { UNLIMITED_MINUTES } from '../config/app';
+import { useSettings } from '../hooks/useSettings';
 
 const CustomerContext = createContext(null);
 const STORAGE_KEY = 'water_customer_v1';
@@ -32,9 +34,10 @@ function clearStored() {
 
 /**
  * حساب العميل: يُسجَّل مرة واحدة (اسم + رقم) ويُحفظ في المتصفح، فلا يُطلب منه مجددًا.
- * السجل الحي (الحد والعدّاد) يُقرأ من Firestore لحظيًا. status: guest | ready
+ * السجل الحي (الحد والمستهلك بالدقائق) يُقرأ من Firestore لحظيًا. status: guest | ready
  */
 export function CustomerProvider({ children }) {
+  const settings = useSettings();
   const [stored, setStored] = useState(readStored);
   const [customer, setCustomer] = useState(() => {
     const s = readStored();
@@ -78,18 +81,18 @@ export function CustomerProvider({ children }) {
 
   const allowance = useMemo(() => {
     if (!customer) return null;
-    const limit = Number(customer.weeklyLimit);
+    const limit = Number(customer.weeklyMinutes ?? settings.defaultWeeklyMinutes);
     const known = Number.isFinite(limit);
-    const used = isSameWeek(toDate(customer.lastBookingAt), new Date()) ? Number(customer.weekCount) || 0 : 0;
+    const used = isSameWeek(toDate(customer.lastBookingAt), new Date()) ? Number(customer.weekMinutes) || 0 : 0;
     return {
       known, // false = بيانات محفوظة محليًا لم يصل سجلها الحي بعد
       limit: known ? limit : 0,
       used,
       remaining: known ? Math.max(0, limit - used) : 0,
-      unlimited: known && limit >= 999,
+      unlimited: known && limit >= UNLIMITED_MINUTES,
       blocked: customer.blocked === true,
     };
-  }, [customer]);
+  }, [customer, settings.defaultWeeklyMinutes]);
 
   const value = useMemo(
     () => ({ status: phone ? 'ready' : 'guest', customer, allowance, register, forget }),

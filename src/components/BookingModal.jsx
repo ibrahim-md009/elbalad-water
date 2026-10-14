@@ -49,13 +49,13 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
     }
   }, [open, item, available, phase, onGone]);
 
-  // لا يستطيع الحجز: محظور أو استنفد حدّه الأسبوعي
+  // لا يستطيع الحجز: محظور أو استنفد دقائقه الأسبوعية
   const blockedReason = !customer
     ? "سجّل اسمك ورقمك أولًا."
     : allowance?.blocked
       ? "تعذر إتمام الحجز حاليًا، يرجى التواصل مع الإدارة."
       : allowance?.known && allowance.remaining < 1
-        ? `وصلت للحد الأسبوعي للحجوزات (${allowance.limit}). يتجدد يوم السبت.`
+        ? `استنفدت دقائقك الأسبوعية (${allowance.limit} دقيقة). يتجدد يوم السبت.`
         : "";
 
   const switchAccount = () => {
@@ -72,6 +72,8 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
     if (minutes === "") next.minutes = "أدخل عدد الدقائق.";
     else if (!Number.isInteger(mins) || mins <= 0) next.minutes = "أدخل عدد دقائق صحيح أكبر من صفر.";
     else if (mins > available) next.minutes = "الرقم المطلوب غير متوفر";
+    else if (allowance?.known && !allowance.unlimited && mins > allowance.remaining)
+      next.minutes = `المتبقي لك هذا الأسبوع ${allowance.remaining} دقيقة فقط.`;
     if (!receipt) next.receipt = "أرفق صورة وصل الدفع.";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -198,8 +200,8 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
         {allowance?.known && !allowance.blocked && (
           <p className={`allowance ${allowance.remaining < 1 ? "is-out" : ""}`}>
             {allowance.unlimited
-              ? "حجوزاتك هذا الأسبوع: بدون حد"
-              : `المتبقي لك هذا الأسبوع: ${allowance.remaining} من ${allowance.limit} حجوزات`}
+              ? "دقائقك هذا الأسبوع: بدون حد"
+              : `المتبقي لك هذا الأسبوع: ${allowance.remaining} من ${allowance.limit} دقيقة`}
           </p>
         )}
 
@@ -211,7 +213,7 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
             type="number"
             inputMode="numeric"
             min="1"
-            max={available}
+            max={allowance?.known && !allowance.unlimited ? Math.min(available, allowance.remaining) : available}
             step="1"
             placeholder="كم دقيقة تحتاج ؟"
             value={minutes}
