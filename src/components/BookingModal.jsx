@@ -39,6 +39,7 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
 
   const busy = phase === "uploading" || phase === "submitting";
   const available = Number(item?.availableMinutes) || 0;
+  const showMinutes = item?.showMinutes === true;
 
   // انتهت الدقائق أثناء وجود الزبون داخل الفورم (ليس بسبب حجزه هو)
   useEffect(() => {
@@ -62,6 +63,13 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
     forget();
     onClose();
   };
+
+  // لا نكشف عدد الدقائق المتاحة عبر حدّ الحقل إن كانت مخفية عن العميل
+  const caps = [
+    showMinutes ? available : null,
+    allowance?.known && !allowance.unlimited ? allowance.remaining : null,
+  ].filter((n) => n !== null);
+  const maxMinutes = caps.length ? Math.min(...caps) : undefined;
 
   const mins = Number(minutes);
   const minutesValid = minutes !== "" && Number.isInteger(mins) && mins > 0;
@@ -181,6 +189,13 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
           <strong>{snapshot?.dateText}</strong>
         </div>
 
+        {showMinutes && (
+          <div className="booking-slot">
+            <span>المتاح</span>
+            <strong>{formatMinutes(available)}</strong>
+          </div>
+        )}
+
         {customer && (
           <div className="customer-box">
             <div>
@@ -213,7 +228,7 @@ export default function BookingModal({ open, item, snapshot, settings, onClose, 
             type="number"
             inputMode="numeric"
             min="1"
-            max={allowance?.known && !allowance.unlimited ? Math.min(available, allowance.remaining) : available}
+            max={maxMinutes}
             step="1"
             placeholder="كم دقيقة تحتاج ؟"
             value={minutes}
