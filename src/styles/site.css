@@ -394,18 +394,19 @@
   font-weight: 800;
   text-decoration: none;
   border-bottom: 2px solid transparent;
-  background-color: #8998a8;
+  background-color: black;
   text-decoration-line: underline;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   transition: 0.3s;
 }
-.made-by a:hover {
-  background-color: black;
-}
+
 [data-theme="dark"] .made-by {
   color: var(--brand-light);
+}
+[data-theme="dark"] .made-by a {
+  background-color: #8998a8;
 }
 
 /* ───────── آية + شريط الأذكار ───────── */
