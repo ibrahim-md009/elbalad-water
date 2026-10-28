@@ -73,7 +73,10 @@
   border-radius: var(--radius-sm);
   text-decoration: none;
   color: var(--text-2);
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 .site-nav a:hover {
   background: var(--hover);
@@ -386,21 +389,20 @@
   font-weight: 600;
   text-align: center;
 }
-.made-by-heart {
-  color: var(--error);
-}
+
 .made-by a {
   font-weight: 800;
   text-decoration: none;
   border-bottom: 2px solid transparent;
-  background-color: var(--brand);
+  background-color: #8998a8;
+  text-decoration-line: underline;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  transition: border-color 0.15s;
+  transition: 0.3s;
 }
 .made-by a:hover {
-  border-bottom-color: var(--brand);
+  background-color: black;
 }
 [data-theme="dark"] .made-by {
   color: var(--brand-light);

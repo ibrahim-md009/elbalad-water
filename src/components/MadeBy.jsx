@@ -1,17 +1,9 @@
 export default function MadeBy() {
   return (
     <p className="made-by">
-      صُنع بـ{" "}
-      <span className="made-by-heart" aria-hidden="true">
-        ♥
-      </span>{" "}
-      بواسطة{" "}
-      <a href="https://mhmod-hazem-portfolio.vercel.app/" target="_blank" rel="noopener noreferrer">
-        محمود
-      </a>{" "}
-      و{" "}
-      <a href="https://ibrahim-dev-09.vercel.app" target="_blank" rel="noopener noreferrer">
-        إبراهيم
+      تم تطويره بواسطة{" "}
+      <a href="https:/darcx.vercel.app/" target="_blank" rel="noopener noreferrer">
+        DARCX
       </a>
     </p>
   );
